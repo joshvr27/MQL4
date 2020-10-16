@@ -1,0 +1,10 @@
+Logs/
+/Logs/
+/logs/*
+/Logs/**/*
+/Logs/*.log
+Logs/*
+Logs/**/*
+Logs/*.log
+Logs/**/*.log
+

@@ -1,0 +1,12 @@
+DynamicLotSize=true
+EquityPercent=2.0
+FixedLotSize=0.1
+StopLoss=60
+TakeProfit=200
+TrailingStop=100
+MinimumProfit=40
+Slippage=5
+MagicNumber=123
+FastMAPeriod=45
+SlowMAPeriod=25
+CheckOncePerBar=true
