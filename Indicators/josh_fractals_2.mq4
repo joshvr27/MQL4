@@ -8,16 +8,22 @@
 #property version   "1.00"
 #property strict
 #property indicator_chart_window
+<<<<<<< HEAD
 #property script_show_inputs
+=======
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
 
 // externs
 extern bool CheckOncePerBar = true;
 extern int barsToCheck = 200;
 extern int fractalSensitivity = 5;
+<<<<<<< HEAD
 extern double clusterMarginPercentage = 0.02;
 extern bool safemode = false; // hides lesser important lines (clusters less than 2)
 
 #include <stdlib.mqh>
+=======
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
 
 // new bar vars
 int BarShift;
@@ -26,10 +32,13 @@ datetime CurrentTimeStamp;
 
 // management vars
 double UsePoint;
+<<<<<<< HEAD
 //++++ These are adjusted for 5 digit brokers.
 int     pips2points;    // slippage  3 pips    3=points    30=points
 double  pips2dbl;       // Stoploss 15 pips    0.0015      0.00150
 int     digitsPips;    // DoubleToStr(dbl/pips2dbl, Digitspips)
+=======
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
 
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
@@ -38,6 +47,7 @@ int OnInit()
   {
 //--- indicator buffers mapping
    UsePoint = PipPoint(Symbol());
+<<<<<<< HEAD
    
    // set digits for jpy etc
     if (Digits == 5 || Digits == 3){    // Adjust for five (5) digit brokers.
@@ -57,6 +67,11 @@ int deinit() {
 }
 
 
+=======
+//---
+   return(INIT_SUCCEEDED);
+  }
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
 //+------------------------------------------------------------------+
 //| Custom indicator iteration function                              |
 //+------------------------------------------------------------------+
@@ -71,6 +86,7 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
   {
+<<<<<<< HEAD
    
    
     ObjectsDeleteAll(0, 0, -1);
@@ -236,6 +252,13 @@ int OnCalculate(const int rates_total,
    
       return(1);
 }
+=======
+//---
+   
+//--- return value of prev_calculated for next call
+   return(rates_total);
+  }
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
 //+------------------------------------------------------------------+
 
 
@@ -277,6 +300,7 @@ int countOccurrences(const double condition, int &array[]) {
       if (condition == array[i])
          cnt++;
    }
+<<<<<<< HEAD
    return cnt;
 }
 
@@ -318,3 +342,6 @@ string  PriceToStr(double p){
     string pPip = DoubleToStr(p, Digits-1);
     if (pPip+"0" == pFrc)       return(pPip);           return(pFrc);
 }
+=======
+   return cnt;
+>>>>>>> 13fa96131f0c536357879ddc52a9fc545ac92550
