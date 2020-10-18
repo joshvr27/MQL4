@@ -121,15 +121,15 @@ ObjectsDeleteAll(0, 0, -1);
    }
    
    */
-   int highestArray[];
-   int count = 0;
-   for (int i = 0; i < barsToCheck; i + fractalSensitivity) {
-      int highestBar = iHighest(Symbol(), 0, MODE_HIGH, fractalSensitivity, i + 1);
-      Alert("highest bar: " + highestBar + " i: " + i + " count: " + count, " bars to check: " + barsToCheck);
-      // highestArray[count] = highestBar;
-      // DrawArrowDown("arrow_down_" + count, (High[highestBar] + arrowOffset), Time[highestBar], Yellow);
-      count++;
-   }
+   //int highestArray[];
+   //int count = 0;
+   //for (int i = 0; i < barsToCheck; i++ ) {  // + fractalSensitivity
+   //   int highestBar = iHighest(Symbol(), 0, MODE_HIGH, fractalSensitivity, i + 1);
+   //   Alert("highest bar: " + highestBar + " i: " + i + " count: " + count, " bars to check: " + barsToCheck);
+   //    highestArray[count] = highestBar;
+   //    DrawArrowDown("arrow_down_" + count, (High[highestBar] + arrowOffset), Time[highestBar], Yellow);
+   //   count++;
+   //}
    
     // DrawArrowDown("arrow_down_" + i, (High[i] + arrowOffset), Time[i], Yellow);
     
