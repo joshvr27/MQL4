@@ -9,13 +9,40 @@
 #property strict
 #property indicator_chart_window
 #property script_show_inputs
+#property indicator_buffers 2;        // Number of buffers
+#property indicator_color1 Red;      // Color of the 1st line
+#property indicator_color2 White      // Color of the 2nd line
+//#property indicator_color3 White      // Color of the 3rd line
+//#property indicator_color4 White      // Color of the 4th line
+//#property indicator_color5 White      // Color of the 5th line
+//#property indicator_color6 White      // Color of the 6th line
+//#property indicator_color7 White      // Color of the 7th line
+//#property indicator_color8 White      // Color of the 8th line
+// 
+double Buf_0[], Buf_1[], Buf_2[], Buf_3[], Buf_4[], Buf_5[], Buf_6[], Buf_7[]; // Declaring arrays (for indicator buffers)
+
+// TODO: BIG IMPROVEMENT! for getting the ihighest search, also check if this bar is higher than +- 1 bar either side, else disregard the fractal
+
+// TODO: IF ON UPTREND & MAKING NEW HHs and HLs we wont have an upper cluster, so filter for this with trend & MA then use the next lowest supt as a trailing stop and dont set a TP.
+// TODO: SET MACRO CONDITIONS TO LOOKS FOR RANGING VS TRENDING MARKETS
+// TODO: staggered TPs (tp1 at closer linewidth / dashed levels, tp2 and tp3 at thicker ones, all share same SL AND ts)
+// TODO: if price jumps too much it will change the iLowest/Ihighest range and mess with the margin percentage (lines will become diff color)
+// TODO: give Highest high and lowest low (even if current a +1 priority (atleast 1 linewidth)
+// TODO: for trending markets, rate the smoothness & angle of the trend
+// TODO: Possibly do the search and sweep from the last to current ( Bars -1) instead to prevent lines shifting)
+// TODO: stop values from scanning (arrows scanning up and over a fractal, creating a double line when on top then removing the line)
+// TODO: Rule to check where most of the volume of previous 200 period trades are... if theres a clear channel we are re-entering up into a supt line then we know 
+// it is a high probability trade
 
 // externs
 extern bool CheckOncePerBar = true;
 extern int barsToCheck = 200;
-extern int fractalSensitivity = 5;
-extern double clusterMarginPercentage = 0.02;
-extern bool safemode = false; // hides lesser important lines (clusters less than 2)
+extern int fractalSensitivity = 15;
+extern double clusterMarginPercentage = 0.1;
+extern bool safemode = true;
+// hides lesser important lines (clusters less than 2)
+extern int safetyLevel = 2; 
+// only needed if safemode = true, 1 = low but safe 5 is safest but extremely rare
 
 #include <stdlib.mqh>
 
@@ -36,7 +63,7 @@ int     digitsPips;    // DoubleToStr(dbl/pips2dbl, Digitspips)
 //+------------------------------------------------------------------+
 int OnInit()
   {
-//--- indicator buffers mapping
+
    UsePoint = PipPoint(Symbol());
    
    // set digits for jpy etc
@@ -44,15 +71,40 @@ int OnInit()
                 pips2dbl    = Point*10; pips2points = 10;   digitsPips = 1;
     } else {    pips2dbl    = Point;    pips2points =  1;   digitsPips = 0; }
     
+   //--- indicator buffers mapping
+SetIndexBuffer(0, Buf_0);
+SetIndexStyle (0, DRAW_LINE, STYLE_SOLID, 1);
+   
+SetIndexBuffer(1, Buf_1);
+SetIndexStyle (1, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(2, Buf_2);
+//   SetIndexStyle (2, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(3, Buf_3);
+//   SetIndexStyle (3, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(4, Buf_4);
+//   SetIndexStyle (4, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(5, Buf_5);
+//   SetIndexStyle (5, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(6, Buf_6);
+//   SetIndexStyle (6, DRAW_LINE, STYLE_SOLID, 1);
+//   
+//   SetIndexBuffer(7, Buf_7);
+//   SetIndexStyle (7, DRAW_LINE, STYLE_SOLID, 1);
+    
    Alert("Initialised");
-//---
+   
    return(INIT_SUCCEEDED);
   }
   
   
 int deinit() {
    Comment("De Init");
-   ObjectsDeleteAll(0, 0, -1);
+   ObjectsDeleteAll(0, 0, OBJ_HLINE);
    return(0);
 }
 
@@ -73,7 +125,7 @@ int OnCalculate(const int rates_total,
   {
    
    
-    ObjectsDeleteAll(0, 0, -1);
+    ObjectsDeleteAll(0, 0, OBJ_HLINE);
    
    // Execute on bar open
    if(CheckOncePerBar == true)
@@ -95,32 +147,36 @@ int OnCalculate(const int rates_total,
      
     // only trigger indicator on new bar
     if (NewBar != true) return(0);
-    Alert("New Bar:", NewBar);
+    // Alert("New Bar:", NewBar); 
       
     // get the current price range
-    double allTimeHigh = iHigh(NULL, 0, iHighest(NULL, 0, MODE_HIGH, Period(), 0) );
-    double allTimeLow = iLow(NULL, 0, iLowest(NULL, 0, MODE_LOW, Period(), 0) );
+    double allTimeHigh = iHigh(NULL, 0, iHighest(NULL, 0,MODE_HIGH, barsToCheck, 0) );
+    double allTimeLow = iLow(NULL, 0, iLowest(NULL, 0, MODE_LOW, barsToCheck, 0) );
     double priceRange = allTimeHigh - allTimeLow;
-    Alert("priceRange: " + priceRange);
+    // Alert("priceRange: " + priceRange);
     
     // get 1% of range to use as the margin for s/r levels
     double priceClusterMargin = priceRange * clusterMarginPercentage;
-    Alert(clusterMarginPercentage * 100 + "% of range: " + priceRange * clusterMarginPercentage); // possibly make this smaller and set as ext
+    // Alert(clusterMarginPercentage * 100 + "% of range: " + priceRange * clusterMarginPercentage); // possibly make this smaller and set as ext
    
    int counted_bars = IndicatorCounted();
    int i = Bars - counted_bars - 1;           // Index of the first uncounted
+   
+   // simple 200 MA
+   // Alert("COUNTED BARS " + i);
+  // Buf_0[e] = 0.75115; // iMA(Symbol(),0 , 200, 0, MODE_SMA, PRICE_CLOSE, 0);
+   // Buf_1[e] = High[0];
    
    // get an arrow offset
    double TickValue = MarketInfo(Symbol(), MODE_TICKVALUE);
    double arrowOffset = TickValue * UsePoint;
    
  
-   // add resistance lines -------------------------------------------------->
-   addResistanceLines(arrowOffset, priceClusterMargin);
+   // add resistance lines ------------------------------------------>
+   addResistanceLines(arrowOffset, priceClusterMargin, Yellow, Magenta, safetyLevel);
    
-   
-   
-       
+   // add support lines ------------------------------------------>
+   addSupportLines(arrowOffset, priceClusterMargin, clrTurquoise, Magenta, safetyLevel);
    
       return(1);
 }
@@ -131,15 +187,15 @@ int OnCalculate(const int rates_total,
 
 void DrawArrowUp(string ArrowName,double LinePrice, datetime time, color LineColor)
 {
-   ObjectCreate(ArrowName, OBJ_ARROW, 0, time, LinePrice); //draw an up arrow
+   ObjectCreate(0, ArrowName, OBJ_ARROW, 0, time, LinePrice); //draw an up arrow
    ObjectSet(ArrowName, OBJPROP_STYLE, STYLE_SOLID);
    ObjectSet(ArrowName, OBJPROP_ARROWCODE, SYMBOL_ARROWUP);
-   ObjectSet(ArrowName, OBJPROP_COLOR,LineColor);
+   ObjectSet( ArrowName, OBJPROP_COLOR,LineColor);
 }
 
 void DrawArrowDown(string ArrowName,double LinePrice, datetime time, color LineColor)
 {
-   ObjectCreate(ArrowName, OBJ_ARROW, 0, time, LinePrice); //draw an up arrow
+   ObjectCreate(0, ArrowName, OBJ_ARROW, 0, time, LinePrice); //draw an up arrow
    ObjectSet(ArrowName, OBJPROP_STYLE, STYLE_SOLID);
    ObjectSet(ArrowName, OBJPROP_ARROWCODE, SYMBOL_ARROWDOWN);
    ObjectSet(ArrowName, OBJPROP_COLOR,LineColor);
@@ -181,15 +237,15 @@ void doubleArrayPush(double & array[] , double dataToPush){
 }
 
 // TEST multi dim array push
-void multiDimDoubleArrayPush(double & array[] , double dataToPush){
-    int count = ArrayResize(array, ArraySize(array) + 1);
-    array[ArraySize(array) - 1] = dataToPush;
-}
+//void multiDimDoubleArrayPush(double & array[] , double dataToPush){
+//    int count = ArrayResize(array, ArraySize(array) + 1);
+//    array[ArraySize(array) - 1] = dataToPush;
+//}
 
 void HLine(string name, double P0, color clr, int style, int lineThickness) {
 #define WINDOW_MAIN 0
     if (ObjectMove( name, 0, Time[0], P0 )){}
-    else if(!ObjectCreate( name, OBJ_HLINE, WINDOW_MAIN, Time[0], P0 ))
+    else if(!ObjectCreate( 0, name, OBJ_HLINE, WINDOW_MAIN, Time[0], P0 ))
         Alert("ObjectCreate(",name,",HLINE) failed: ", GetLastError() );
     if (!ObjectSet(name, OBJPROP_COLOR, clr )) // Allow color change
         Alert("ObjectSet(", name, ",Color) [1] failed: ", GetLastError() );
@@ -207,8 +263,8 @@ string  PriceToStr(double p){
     if (pPip+"0" == pFrc)       return(pPip);           return(pFrc);
 }
 
-// function to add resistance Lines
-void addResistanceLines(double arrowOffset, double priceClusterMargin) {
+// ----------------------------------------------------------------------------------------> RESISTANCE LINES FUNCTION
+void addResistanceLines(double arrowOffset, double priceClusterMargin, color resistanceColor, color signalColor, int safetyLevel) {
    int highestArray[];
    double highestPriceArray[];
    int iterationCount = 0;
@@ -219,13 +275,22 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
    for(int searchArea = 0; searchArea < barsToCheck; searchArea += StringToInteger(fractalSensitivity)) { // if loops arent finishing slow down backtester playback
    
       if (searchArea >= Bars) {
-         Alert("no more bars available for analysis");
+         // Alert("no more bars available for analysis");
          break;
       }
       
       // Alert("iteration: " + iterationCount +  " starting at bar " + (searchArea + 1) + " with area of " + fractalSensitivity + " and bars to check: " + barsToCheck + " bars avail: " + Bars);
       
-      int highestBar = iHighest(Symbol(), 0, MODE_HIGH, StringToInteger(fractalSensitivity), StringToInteger(searchArea));
+      int highestBar = iHighest(Symbol(), 0, MODE_HIGH, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( searchArea % fractalSensitivity)); // added the modulo to stop the Hlines refreshing each candle
+      
+      // Alert("highest bar: " + highestBar + " Bars: " + Bars);
+      // filter to disregard highest bars that have higher bars either side (not a fractal)
+      if (highestBar > 0) {
+         if (highestBar != Bars && highestBar+1 != Bars && High[highestBar] < High[highestBar + 1] || High[highestBar] < High[highestBar -1]) {
+            // Alert("False high fractal detected");
+            highestBar = 0; // set to 0 so that it gets disregarded
+         }
+      }
       
       if (highestBar == -1) { // error handling
       
@@ -236,12 +301,12 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
          
       } else {
       
-         Alert("highest bar: " + highestBar + " searchArea: " + searchArea + " iterationCount: " + iterationCount, " bars to check: " + barsToCheck);
+         // Alert("highest bar: " + highestBar + " searchArea: " + searchArea + " iterationCount: " + iterationCount, " bars to check: " + barsToCheck);
          intArrayPush(highestArray, highestBar);
          
          if (highestBar > 0) {
             // draw the arrow
-            DrawArrowDown("arrow_down_" + iterationCount, (High[highestBar] + arrowOffset), Time[highestBar], Yellow);
+            DrawArrowDown("arrow_down_" + iterationCount, (High[highestBar] + arrowOffset), Time[highestBar], resistanceColor);
             // add the price to the highest price array 
            doubleArrayPush(highestPriceArray, High[highestBar]);
          }
@@ -254,7 +319,7 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
    
    // go through price array and find values within X deviation of each other
    int countArray = ArraySize(highestPriceArray);
-   Alert("count array " + countArray);
+   // Alert("count array " + countArray);
    
    // cluster array for storing groups of prices
    double clusterMultiPriceArr[1][40];
@@ -262,7 +327,7 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
    for (int i = 0; i < ArraySize(highestPriceArray); i++) {
       
       double priceToCheck = highestPriceArray[i];
-      Alert("HP: " + priceToCheck);
+      // Alert("HP: " + priceToCheck);
       
       // loop over the highest price array again and compare each value to look for clusters
       int clusterCount = 0; // total clusters for this specific comparison iteration (outer loop)
@@ -277,7 +342,7 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
             
             // we have a cluster
             clusterCount++;
-            Alert("Cluster! test price: " +  priceToCheck + " compare price: " + singlePriceFromArr);
+            // Alert("Cluster! test price: " +  priceToCheck + " compare price: " + singlePriceFromArr);
             
             
             // push to cluster array
@@ -297,7 +362,7 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
       
       string name = "H_LINE_" + i;
       if (clusterCount > 0) {
-         Alert("cluster count for i:" + i + " - " + clusterCount);
+         // Alert("cluster count for i:" + i + " - " + clusterCount);
          int lineWidth;
          if (clusterCount >= 1 && clusterCount < 3) lineWidth = 1;
          if (clusterCount >= 3 && clusterCount < 4) lineWidth = 2;
@@ -307,13 +372,136 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin) {
          
          // HLine(name, priceToCheck, Yellow, STYLE_SOLID, lineWidth);
          if (safemode) {
-            if (lineWidth >= 2) HLine(name, priceToCheck, Yellow, STYLE_SOLID, lineWidth);
+            if (lineWidth >= safetyLevel) HLine(name, priceToCheck, signalColor, STYLE_SOLID, lineWidth); // todo: safety level
+            
+             // SetIndexStyle (1, DRAW_LINE, STYLE_SOLID, 1);
+             //Buf_0[i] = priceToCheck;
+             
          } else {
-            HLine(name, priceToCheck, Yellow, STYLE_SOLID, lineWidth);
+            HLine(name, priceToCheck, resistanceColor, STYLE_SOLID, lineWidth);
          }
       } else {
-         Alert("fractal but no cluster for i: " + i);
-         if (!safemode) HLine(name, priceToCheck, Yellow, STYLE_DOT, 1);
+         // Alert("fractal but no cluster for i: " + i);
+         if (!safemode) HLine(name, priceToCheck, resistanceColor, STYLE_DOT, 1);
       } 
    }
 }
+
+
+// --------------------------------------------------------> FUNCTION FOR SUPPORT LINES
+
+
+// function to add resistance Lines
+void addSupportLines(double arrowOffset, double priceClusterMargin, color suptColor, color signalColor, int safetyLevel) {
+   int lowestArray[];
+   double lowestPriceArray[];
+   int iterationCount = 0;
+   
+  
+   for(int searchArea = 0; searchArea < barsToCheck; searchArea += StringToInteger(fractalSensitivity)) { // if loops arent finishing slow down backtester playback
+   
+      if (searchArea >= Bars) {
+        // Alert("no more bars available for analysis");
+         break;
+      }
+      
+      int lowestBar = iLowest(Symbol(), 0, MODE_LOW, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( searchArea % fractalSensitivity)); // added modulo
+      
+      // filter to disregard lowest bars that have lower bars either side (not a fractal)
+      if (lowestBar > 0) {
+         if (lowestBar != Bars && lowestBar+1 != Bars && Low[lowestBar] > Low[lowestBar + 1] || Low[lowestBar] > Low[lowestBar -1]) {
+            // Alert("False low fractal detected");
+            lowestBar = 0; // set to 0 so that it gets disregarded
+         }
+      }
+      
+      if (lowestBar == -1) { // error handling
+      
+         int errorCode = GetLastError();
+         string errorDesc = ErrorDescription(errorCode);
+         string errorAlert = StringConcatenate("Error: ", errorCode,": ", errorDesc);
+         Alert(errorAlert);
+         
+      } else {
+      
+         // Alert("lowest bar: " + lowestBar + " searchArea: " + searchArea + " iterationCount: " + iterationCount, " bars to check: " + barsToCheck);
+         intArrayPush(lowestArray, lowestBar);
+         
+         if (lowestBar > 0) {
+            // draw the arrow
+            DrawArrowDown("arrow_down_supt" + iterationCount, (Low[lowestBar] + arrowOffset), Time[lowestBar], suptColor);
+            // add the price to the highest price array 
+           doubleArrayPush(lowestPriceArray, Low[lowestBar]);
+         }
+         
+      }
+      iterationCount++;  
+   }
+   
+   // -----------------------------------------------------------------------------> Part 2, clustering
+   
+   // go through price array and find values within X deviation of each other
+   int countArray = ArraySize(lowestPriceArray);
+   // Alert("count array " + countArray);
+   
+   // cluster array for storing groups of prices
+   double clusterMultiPriceArr[1][40];
+   
+   for (int i = 0; i < ArraySize(lowestPriceArray); i++) {
+      
+      double priceToCheck = lowestPriceArray[i];
+      // Alert("LP: " + priceToCheck);
+      
+      // loop over the lowest price array again and compare each value to look for clusters
+      int clusterCount = 0; // total clusters for this specific comparison iteration (outer loop)
+      for (int j = 0; j < ArraySize(lowestPriceArray); j++) {
+         
+         double singlePriceFromArr = lowestPriceArray[j]; // store each comparison price in a variable
+         double upperMargin = singlePriceFromArr + priceClusterMargin;
+         double lowerMargin = singlePriceFromArr - priceClusterMargin;
+         
+         // check if we have any clusters
+         if (priceToCheck >= lowerMargin && priceToCheck <= upperMargin && i != j) { // i != j ensures the price isnt checking against itself
+            
+            // we have a cluster
+            clusterCount++;
+            // Alert("Cluster! test price: " +  priceToCheck + " compare price: " + singlePriceFromArr);
+            
+            // push to cluster array
+           ArrayResize(clusterMultiPriceArr, i + 1, i + 1); // resize multi dimensional array
+           clusterMultiPriceArr[i][0] = priceToCheck;
+           clusterMultiPriceArr[i][j+1] = singlePriceFromArr;
+            
+         } else {
+         
+            // no cluster but still a fractal, add to another array for single lines.
+            ArrayResize(clusterMultiPriceArr, i + 1, i + 1); // resize multi dimensional array
+            clusterMultiPriceArr[i][0] = priceToCheck;
+         }
+      }
+      
+      string name = "H_LINE_SUPT" + i;
+      if (clusterCount > 0) {
+         // Alert("cluster count for i:" + i + " - " + clusterCount);
+         int lineWidth;
+         if (clusterCount >= 1 && clusterCount < 3) lineWidth = 1;
+         if (clusterCount >= 3 && clusterCount < 4) lineWidth = 2;
+         if (clusterCount >= 4 && clusterCount < 5) lineWidth = 3;
+         if (clusterCount >= 5 && clusterCount < 7) lineWidth = 4;
+         if (clusterCount >= 7)                     lineWidth = 5;
+         
+         // HLine(name, priceToCheck, Yellow, STYLE_SOLID, lineWidth);
+         if (safemode) {
+            if (lineWidth >= safetyLevel) HLine(name, priceToCheck, signalColor, STYLE_SOLID, lineWidth); // todo safety level
+            
+            // Buf_1[i] = priceToCheck;
+            
+         } else {
+            HLine(name, priceToCheck, suptColor, STYLE_SOLID, lineWidth);
+         }
+      } else {
+         // Alert("fractal but no cluster for i: " + i);
+         if (!safemode) HLine(name, priceToCheck, suptColor, STYLE_DOT, 1);
+      } 
+   }
+ }
