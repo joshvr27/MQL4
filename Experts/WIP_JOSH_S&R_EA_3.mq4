@@ -77,16 +77,20 @@ void OnTick()
     
 
    // add the custom S&R indicator to chart
-   iCustom(NULL, 0, "josh_fractals_3_funcs", CheckOncePerBar, barsToCheck, fractalSensitivity, clusterMarginPercentage, safemode, safetyLevel);
+   iCustom(NULL, 0, "josh_fractals_4_funcs", CheckOncePerBar, barsToCheck, fractalSensitivity, clusterMarginPercentage, safemode, safetyLevel);
    
    // loop through all horizontal lines, 
    createNearestPriceArrays(upperPriceArray,lowerPriceArray);
    
    // sort price arrays higher from 0 -> low to high, lower 0 -> high to low
    sortArraysIntoNumericalOrder(upperPriceArray,lowerPriceArray);
-   
-   
-   
+    
+    // get MAs and Price
+    double MA200 = iMA(Symbol(), 0, 200, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double MA100 = iMA(Symbol(), 0, 100, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double MA50  = iMA(Symbol(), 0, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double price = Close[0 + BarShift];
+
    // ----------------- UPPER CHECKS
    // check if any of the lines are on or close to the UPPER price
    for (int i = 0; i <= ArraySize(upperPriceArray) -1; i++) {
@@ -95,48 +99,41 @@ void OnTick()
       if (Ask > upperPriceArray[i] - priceClusterMargin && Ask <= upperPriceArray[i]) {
          // price is within X percent of upper
          
-<<<<<<< HEAD
          // filter to remove false positives if theres a lower within close proximity as well (should only be indicator arrows on outermost signal cluster lines now)
-         if (ArraySize(lowerPriceArray) > 0 && Ask < lowerPriceArray[i] + priceClusterMargin) {
+         if (ArraySize(lowerPriceArray) > 0 && Ask <= lowerPriceArray[0] + priceClusterMargin) {
             Alert("we are inbetween an upper and lower that are close together");
-            continue;
+            break;
          }
-=======
-         // filter to remove false positives if theres a lower within close proximity as well
-         //if (ArraySize(lowerPriceArray) > 0 && Ask < lowerPriceArray[i] + priceClusterMargin) {
-         //   Alert("we are inbetween an upper and lower that are close together");
-         //   continue;
-         //}
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
          
          Alert("Price Near Upper!");
-         // check  entry candle patterns
-         // Alert(" prev: " +  Close[1] + "current: " + Close[0]);
          
-         // check for candle reversals
-         if (Close[1] > Close[0]) {
+         if ( // IF PRICE BELOW ALL MAs and they are in order from large (top) to small (bottom) - LOOK FOR SHORT ENTRIES, PRICE IS BREAKING SUPPORT & MOVING DOWN
+                true
+               //price < MA50 &&
+               //MA50 < MA100 &&
+               //MA100 < MA200
+            ) {
+            
+               // OUT & DOWN - price could continue to trend down, look for strong signs of continuation (may involve retest)
+               // IN AND UP - Price could break through and range up  ########-------------> let lower rules handle this when it moves above the resistance and it becomes support
+               Alert("OUT AND DOWN");
+               string name = "arrow_down_out&down_in&up_" + i + TimeCurrent();
+               DrawArrowDown(name, Close[0], Time[0], White);
+               
+         } else if ( // IF PRICE ABOVE MAS & MAS ARE ALIGNED LARGEST (BOTTOM) TO SMALLEST (TOP) - LOOK FOR ENTRIES...
+                 true
+                //price > MA50 &&
+                //MA50 > MA100 &&
+               // MA100 > MA200
+           ) {
+           
+               // OUT & UP - Price could trend upwards and through #########-------------> let the lower rule catch it once it breaks resistance (entry candles will help filter, possible retest of resistance as it turns support moving upwards)
+               // IN AND DOWN - price reverse off resistance and range down, look for a reversal just occurring and SHORT ENTRY
+               Alert("IN AND DOWN");
+               string name = "arrow_down_out&up_in&down_" + i + TimeCurrent();
+               DrawArrowDown(name, Close[0], Time[0], White);
          
-            // ranging toward lower bands or on a new downtrend
-<<<<<<< HEAD
-            string name = "arrow_down_" + i + TimeToString(Time[0 + BarShift]);
-            DrawArrowDown(name, Close[0 + BarShift], Time[0 + BarShift], White);
-            
-            // TODO:check MA here
-            // todo check entry here
-            detectBearishEngulfingCandle();
-            
-            
-         } else if (Close[0 + BarShift] < Close[0 + BarShift]) {
-=======
-            string name = "arrow_down_" + i + TimeToString(Time[0]);
-            DrawArrowDown(name, Close[0], Time[0], White);
-            // TODO:check MA here
-            
-         } else if (Close[1] < Close[0]) {
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
-            // still moving up, possible new uptrend or may reverse later
-            // ----> do nothing here
-         }
+           }
       }      
    }
    
@@ -148,53 +145,49 @@ void OnTick()
          // price is within X percent of lower
          
          // filter to remove false positives if theres a upper within close proximity as well
-<<<<<<< HEAD
-         if (ArraySize(upperPriceArray) > 0 && Ask < upperPriceArray[i] - priceClusterMargin) {
+         if (ArraySize(upperPriceArray) > 0 && Ask >= upperPriceArray[0] - priceClusterMargin) { // NEW
             Alert("we are inbetween a lower  and upper that are close together");
-            continue;
+            break;
          }
-=======
-         ////if (ArraySize(upperPriceArray) > 0 && Ask < upperPriceArray[i] - priceClusterMargin) {
-         ////   Alert("we are inbetween a lower  and upper that are close together");
-         ////   continue;
-         ////}
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
          
          
          Alert("Price Near Lower!");
+         
+         
+          if (  // IF PRICE BELOW ALL MAs and they are in order from large (top) to small (bottom) - LOOK FOR SHORT ENTRIES, PRICE IS BREAKING SUPPORT & MOVING DOWN
+               true
+              // price < MA50 &&
+              // MA50 < MA100 &&
+              // MA100 < MA200
+            ) {
+               
+               // IN AND UP - could either be in a range and about to bounce back up, or retest)
+               // OUT & DOWN - ########-------------> let higher rules handle this, price has ranged down to support and will likely go through it and become resistance on downtrend (possible retest)
+               Alert("IN AND UP");
+               string name = "arrow_down_in&up_out&down_" + i + TimeCurrent();
+               DrawArrowUp(name, Close[0], Time[0], White);
+               
+         } else if (   // IF PRICE ABOVE MAS & MAS ARE ALIGNED LARGEST (BOTTOM) TO SMALLEST (TOP) - LOOK FOR ENTRIES...
+               true
+              // price > MA50 &&
+              // MA50 > MA100 &&
+              // MA100 > MA200
+           ) { 
+   
+               // OUT & UP - Price could trend upwards. it may have just recently broken previous range/resistance and turned into support to continue up
+               // IN AND DOWN - #########-------------> let higher rules handle this, price may be about to brea this support on downtrend and will carry on down into next range
 
-         // check for candle reversals
-<<<<<<< HEAD
-         if (Close[1 + BarShift] < Close[0 + BarShift]) {
-            Alert("Price is ranging upwards");
-            // ranging toward upper bands  or on a new uptrend
-            string name = "arrow_up_" + i + TimeToString(Time[0 + BarShift]);
-            DrawArrowUp(name, Close[0 + BarShift], Time[0 + BarShift], White);
-            
-            // todo: Check MA here
-            // todo: check candlestick here (bullish engulfing?)
-            detectBullishEngulfingCandle();
-            
-         } else if (Close[0 + BarShift] > Close[0 + BarShift]) {
-=======
-         if (Close[1] < Close[0]) {
-            Alert("Price is ranging upwards");
-            // ranging toward upper bands  or on a new uptrend
-            string name = "arrow_up_" + i + TimeToString(Time[0]);
-            DrawArrowUp(name, Close[0], Time[0], White);
-            // todo: Check MA here
-            
-         } else if (Close[1] > Close[0]) {
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
-            // still moving down, possible new downtrend or may reverse later
-            // ----> do nothing here
-         }
-      } 
-      
+               Alert("OUT AND UP");
+               string name = "arrow_down_out&up_in&down_" + i + TimeCurrent();
+               DrawArrowUp(name, Close[0], Time[0], White);
+         
+           }
+         //// (ignore?) CHECK DEVIATION OF 200MA/500MA, IF ITS GENTLE PRICE IS LIKEY TO STAY RANGING RATHER THAN GO DOWN
      }
      
+     // TODO: TRIAL NO TP, JUST TRAILING STOP
+     
    
-<<<<<<< HEAD
    // TODO: one trade at a time?
    
    // TODO -- REFINE ENTRY!! - too many false positives, double the cluster percentage margin check 
@@ -209,24 +202,15 @@ void OnTick()
    // TODO: if it is, set a flag to wait for entry
    
    // select the SL & TP lines (make sure they have correct ratio,
-=======
-   // TODO: one trade at a time
-   
-   // TODO: if it is, set a flag to wait for entry
-   
-   // sort lines in numerical order, select the SL & TP lines (make sure they have correct ratio,
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
    // if ratio or gap compared to volatility is bad, choose the next line up for TP & SL
    
    // add in trailing stop
    
-<<<<<<< HEAD
    
-=======
-   // use 100 & 200 ema to decide whether to bounce between lines or to move with trend
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
 
 
+ }
+ 
  }
 //+------------------------------------------------------------------+
 //  FUNCTIONS
@@ -248,21 +232,14 @@ void createNearestPriceArrays(double &upperPriceArray[], double &lowerPriceArray
      
      if (price > Ask ) {
       // push into upper price array
+      
       doubleArrayPush(upperPriceArray, price);
-<<<<<<< HEAD
       // Alert("pushed into upper array" + upperPriceArray[0]);
-=======
-      Alert("pushed into upper array" + upperPriceArray[0]);
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
       
      } else {
       // push into lower price array
       doubleArrayPush(lowerPriceArray, price);
-<<<<<<< HEAD
       // Alert("pushed into lower array" + lowerPriceArray[0]);
-=======
-      Alert("pushed into lower array" + lowerPriceArray[0]);
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
      }
 
    }
@@ -280,11 +257,7 @@ void sortArraysIntoNumericalOrder(double &upperPriceArray[], double &lowerPriceA
       // sort price arrays into numerical order
       ArraySort(upperPriceArray, WHOLE_ARRAY, 0, MODE_ASCEND);   
       for (int i = 0; i <= ArraySize(upperPriceArray) -1; i++){
-<<<<<<< HEAD
          // Alert("upper price array: i" + i + " price: " + upperPriceArray[i]);
-=======
-         Alert("upper price array: i" + i + " price: " + upperPriceArray[i]);
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
       }
    }
    
@@ -292,11 +265,7 @@ void sortArraysIntoNumericalOrder(double &upperPriceArray[], double &lowerPriceA
       // sort price arrays into numerical order
       ArraySort(lowerPriceArray, WHOLE_ARRAY, 0, MODE_DESCEND);
       for (int i = 0; i <= ArraySize(lowerPriceArray) -1; i++){
-<<<<<<< HEAD
          // Alert("lower price array: i" + i + " price: " + lowerPriceArray[i]);
-=======
-         Alert("lower price array: i" + i + " price: " + lowerPriceArray[i]);
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
       }    
    }
 }
@@ -330,31 +299,27 @@ void DrawArrowDown(string ArrowName,double LinePrice, datetime time, color LineC
    ObjectSet(ArrowName, OBJPROP_ARROWCODE, SYMBOL_ARROWDOWN);
    ObjectSet(ArrowName, OBJPROP_COLOR,LineColor);
    ObjectSet( ArrowName, OBJPROP_WIDTH,5);
-<<<<<<< HEAD
 }
+//
+//void detectBearishEngulfingCandle(){
+//
+//   if(Close [1 + BarShift] < Open[1 + BarShift]
+//      && Close[0 + BarShift] > Open[0 + BarShift] 
+//      && Open[0 + BarShift] <= Close[1 + BarShift] 
+//      && Close[0 + BarShift] > Open[1 + BarShift] ) {
+//         Print (Close[0 + BarShift], " Bearish Engulfing Candle at " + Close[0 + BarShift]);
+//    }
+//    
+// }
+// 
+// void detectBullishEngulfingCandle(){
+// 
+//   if(Close [1 + BarShift] > Open[1 + BarShift]
+//      && Close[0 + BarShift] < Open[0 + BarShift] 
+//      && Open[0 + BarShift] >= Close[1 + BarShift] 
+//      && Close[0 + BarShift] < Open[1 + BarShift] ) {
+//         Print (Close[0 + BarShift], " Bullish Engulfing Candle at " + Close[0 + BarShift]);
+//    }
+//    
+// }
 
-void detectBearishEngulfingCandle(){
-
-   if(Close [1 + BarShift] < Open[1 + BarShift]
-      && Close[0 + BarShift] > Open[0 + BarShift] 
-      && Open[0 + BarShift] <= Close[1 + BarShift] 
-      && Close[0 + BarShift] > Open[1 + BarShift] ) {
-         Print (Close[0 + BarShift], " Bearish Engulfing Candle at " + Close[0 + BarShift]);
-    }
-    
- }
- 
- void detectBullishEngulfingCandle(){
- 
-   if(Close [1 + BarShift] > Open[1 + BarShift]
-      && Close[0 + BarShift] < Open[0 + BarShift] 
-      && Open[0 + BarShift] >= Close[1 + BarShift] 
-      && Close[0 + BarShift] < Open[1 + BarShift] ) {
-         Print (Close[0 + BarShift], " Bullish Engulfing Candle at " + Close[0 + BarShift]);
-    }
-    
- }
-
-=======
-}
->>>>>>> ffff2952ef2200aac40f76f1d65d83141aa3f0af
