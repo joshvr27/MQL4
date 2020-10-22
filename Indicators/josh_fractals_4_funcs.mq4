@@ -281,10 +281,10 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin, color res
       
       // Alert("iteration: " + iterationCount +  " starting at bar " + (searchArea + 1) + " with area of " + fractalSensitivity + " and bars to check: " + barsToCheck + " bars avail: " + Bars);
       
-      // int highestBar = iHighest(Symbol(), 0, MODE_HIGH, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( searchArea % fractalSensitivity)); // added the modulo to stop the Hlines refreshing each candle
-      int highestBar =  iHighest(Symbol(), 0, MODE_HIGH, fractalSensitivity, Bars - searchArea - fractalSensitivity);
+      int highestBar = iHighest(Symbol(), 0, MODE_HIGH, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( Bars % fractalSensitivity)); // added the modulo to stop the Hlines refreshing each candle
+      // int highestBar =  iHighest(Symbol(), 0, MODE_HIGH, fractalSensitivity, Bars - searchArea - fractalSensitivity);
       
-      
+      // Alert("highestBar " + highestBar);
       
       // Alert("highest bar: " + highestBar + " Bars: " + Bars);
       // filter to disregard highest bars that have higher bars either side (not a fractal)
@@ -309,7 +309,7 @@ void addResistanceLines(double arrowOffset, double priceClusterMargin, color res
          
          if (highestBar > 0) {
             // draw the arrow
-            DrawArrowDown("arrow_down_" + iterationCount, (High[highestBar] + arrowOffset), Time[highestBar], resistanceColor);
+            DrawArrowDown("arrow_down_" + iterationCount  + TimeCurrent(), (High[highestBar] + arrowOffset), Time[highestBar], resistanceColor);
             // add the price to the highest price array 
            doubleArrayPush(highestPriceArray, High[highestBar]);
          }
@@ -408,8 +408,8 @@ void addSupportLines(double arrowOffset, double priceClusterMargin, color suptCo
          break;
       }
       
-      // int lowestBar = iLowest(Symbol(), 0, MODE_LOW, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( searchArea % fractalSensitivity)); // added modulo
-      int lowestBar =  iHighest(Symbol(), 0, MODE_LOW, fractalSensitivity, Bars - searchArea - fractalSensitivity);
+      int lowestBar = iLowest(Symbol(), 0, MODE_LOW, StringToInteger(fractalSensitivity), StringToInteger(searchArea) + ( Bars % fractalSensitivity)); // added modulo
+      // int lowestBar =  iHighest(Symbol(), 0, MODE_LOW, fractalSensitivity, Bars - searchArea - fractalSensitivity);
       
       // filter to disregard lowest bars that have lower bars either side (not a fractal)
       if (lowestBar > 0) {
@@ -433,7 +433,7 @@ void addSupportLines(double arrowOffset, double priceClusterMargin, color suptCo
          
          if (lowestBar > 0) {
             // draw the arrow
-            DrawArrowDown("arrow_down_supt" + iterationCount, (Low[lowestBar] + arrowOffset), Time[lowestBar], suptColor);
+            DrawArrowDown("arrow_down_supt" + iterationCount + TimeCurrent(), (Low[lowestBar] + arrowOffset), Time[lowestBar], suptColor);
             // add the price to the highest price array 
            doubleArrayPush(lowestPriceArray, Low[lowestBar]);
          }
